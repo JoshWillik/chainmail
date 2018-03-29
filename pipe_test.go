@@ -24,15 +24,15 @@ func (f TestFeed) Close() {
 	close(f.messages)
 }
 
-type TestHandler struct{
+type testHandler struct{
 	callback func(Message) error
 }
-func (s TestHandler) ProcessMessage(m Message) error {
+func (s testHandler) ProcessMessage(m Message) error {
 	return s.callback(m)
 }
 
-func wrap(fn func(Message) error) TestHandler {
-	return TestHandler{fn}
+func makeHandler(fn func(Message) error) testHandler {
+	return testHandler{fn}
 }
 
 func TestPipe(t *testing.T){
@@ -44,7 +44,7 @@ func TestPipe(t *testing.T){
 	}
 	pipe := Pipe{
 		Feed: testFeed,
-		Handler: wrap(func (m Message) error {
+		Handler: makeHandler(func (m Message) error {
 			processed = append(processed, m)
 			return nil
 		}),
