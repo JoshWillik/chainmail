@@ -24,17 +24,6 @@ func (f TestFeed) Close() {
 	close(f.messages)
 }
 
-type testHandler struct{
-	callback func(Message) error
-}
-func (s testHandler) ProcessMessage(m Message) error {
-	return s.callback(m)
-}
-
-func makeHandler(fn func(Message) error) testHandler {
-	return testHandler{fn}
-}
-
 func TestPipe(t *testing.T){
 	processed := make([]Message, 0)
 	testFeed := TestFeed{
