@@ -6,10 +6,11 @@ type Pipe struct{
 }
 
 func (p Pipe) ProcessMessages() error {
-	messages := make(chan Message, 10)
-	if err := p.Feed.Open(messages); err != nil {
+	if err := p.Feed.Init(); err != nil {
 		return err
 	}
+	messages := make(chan Message, 10)
+	p.Feed.Open(messages)
 	for message := range messages {
 		p.Handler.ProcessMessage(message)
 	}

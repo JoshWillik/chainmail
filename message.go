@@ -7,6 +7,8 @@ import (
 
 type Message struct{
 	*mail.Message
+  MessageId string
+  InReplyTo string
 	Received time.Time
 	Date time.Time
 	From []mail.Address

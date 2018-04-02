@@ -9,6 +9,10 @@ type TestFeed struct{
 	Messages []Message
 }
 
+func (f TestFeed) Init() error {
+  return nil
+}
+
 func (f TestFeed) Open(m chan Message) error {
 	f.messages = m
 	go func(){
@@ -17,7 +21,7 @@ func (f TestFeed) Open(m chan Message) error {
 		}
 		f.Close()
 	}()
-	return nil
+  return nil
 }
 
 func (f TestFeed) Close() {
