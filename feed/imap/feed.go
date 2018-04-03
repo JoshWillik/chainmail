@@ -16,12 +16,15 @@ type Feed struct{
   messages chan chainmail.Message
 }
 
-func (f Feed) Init() error {
+func (f *Feed) Init() error {
   client, err := client.DialTLS(f.Address, nil)
   if err != nil {
     return err
   }
   f.client = client
+  if err = f.client.Login(f.Username, f.Password); err != nil {
+    return err
+  }
   if len(f.Mailboxes) == 0 {
     boxes := make(chan *imap.MailboxInfo, 10)
     done := make(chan error, 1)
@@ -38,28 +41,30 @@ func (f Feed) Init() error {
   return nil
 }
 
-func (f Feed) Open(m chan chainmail.Message) error {
+func (f *Feed) Open(m chan chainmail.Message) error {
   f.messages = m
   for _, name := range f.Mailboxes {
     if err := f.syncBox(name); err != nil {
+      f.Close()
       return err
     }
   }
   return nil
 }
 
-func (f Feed) syncBox(name string) error {
-  _, err := f.client.Select(name, true)
+func (f *Feed) syncBox(name string) error {
+  box, err := f.client.Select(name, true)
   if err != nil {
     return err
   }
   messages := make(chan *imap.Message, 10)
   seq := new(imap.SeqSet)
-  //seq.AddRange(1, box.Messages) // only on plentiful internet
-  seq.AddRange(1, 10)
+  seq.AddRange(latest(box.Messages, 10), box.Messages)
   done := make(chan error, 1)
   go func(){
-    done <- f.client.Fetch(seq, []imap.FetchItem{imap.FetchEnvelope}, messages)
+    done <- f.client.Fetch(seq,
+      []imap.FetchItem{imap.FetchEnvelope, imap.FetchInternalDate},
+      messages)
   }()
   for message := range messages {
     f.messages <- parseMessage(message)
@@ -70,7 +75,7 @@ func (f Feed) syncBox(name string) error {
   return nil
 }
 
-func (f Feed) Close(){
+func (f *Feed) Close(){
   f.client.Logout()
   close(f.messages)
 }
@@ -100,4 +105,11 @@ func toAddresses(in []*imap.Address) []mail.Address {
     })
   }
   return out
+}
+
+func latest(have, wanted uint32) uint32 {
+  if have <= wanted {
+    return 1
+  }
+  return have - wanted
 }
